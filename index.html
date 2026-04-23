@@ -335,7 +335,7 @@ function update() {
 
   document.getElementById('metrics').innerHTML = `
     <div class="stat-card hl">
-      <div class="stat-label">CE PS Scheduled</div>
+      <div class="stat-label">CE PS Capacity</div>
       <div class="stat-value">${fmt(effPS)}</div>
       <div class="stat-sub">${overCap ? '⚠️ capped from '+fmt(grossTotal) : 'of '+fmt(psCap)+' capacity'}</div>
     </div>
