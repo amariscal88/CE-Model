@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>CE + PFA Pathway Capacity Model</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; padding: 20px; font-size: 13px; }
@@ -14,6 +16,11 @@
   .month-btn { padding: 5px 11px; border-radius: 6px; border: 1px solid #2d3548; background: #1e2330; color: #94a3b8; font-size: 12px; cursor: pointer; transition: all 0.15s; }
   .month-btn:hover { border-color: #6366f1; color: #c7d2fe; }
   .month-btn.active { background: #312e81; border-color: #6366f1; color: #e0e7ff; font-weight: 600; }
+  
+  .action-btn { background: #3b82f6; border-color: #2563eb; color: #ffffff; font-weight: 600; }
+  .action-btn:hover { background: #2563eb; border-color: #1d4ed8; color: #ffffff; }
+  .danger-btn { background: transparent; border: 1px solid #ef4444; color: #ef4444; font-weight: 600; }
+  .danger-btn:hover { background: #ef4444; color: #ffffff; }
 
   .mode-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
   .mode-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
@@ -33,36 +40,50 @@
   .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
   .input-row label { color: #cbd5e1; font-size: 12px; flex: 1; line-height: 1.35; }
   .input-row input[type=range]  { width: 84px; accent-color: #6366f1; flex-shrink: 0; }
-  .input-row input[type=number] { width: 72px; background: #0f1117; border: 1px solid #3d4a63; border-radius: 5px; color: #f1f5f9; padding: 3px 6px; font-size: 12px; text-align: right; flex-shrink: 0; }
+  .input-row input[type=number] { width: 68px; background: #0f1117; border: 1px solid #3d4a63; border-radius: 5px; color: #f1f5f9; padding: 3px 6px; font-size: 12px; text-align: right; flex-shrink: 0; }
   .val-badge { min-width: 40px; text-align: right; font-size: 12px; font-weight: 600; color: #a5b4fc; flex-shrink: 0; }
   .ro-val    { min-width: 60px; text-align: right; font-size: 12px; font-weight: 600; color: #f1f5f9; background: #0f1117; border: 1px solid #2d3548; border-radius: 5px; padding: 3px 7px; flex-shrink: 0; }
+  
+  .quota-row { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+  .quota-row input { width: 44px; text-align: center; }
+  .quota-lbl { font-size: 10px; color: #94a3b8; }
 
   .badge-current { display:inline-block; font-size:10px; padding:1px 6px; border-radius:4px; background:#1e3a5f; color:#93c5fd; font-weight:700; margin-left:5px; vertical-align:middle; }
   .badge-future  { display:inline-block; font-size:10px; padding:1px 6px; border-radius:4px; background:#14532d; color:#86efac; font-weight:700; margin-left:5px; vertical-align:middle; }
-  .hint { font-size:11px; color:#64748b; margin-bottom:8px; line-height:1.5; }
+  
+  /* TOOLTIPS CSS */
+  .has-tooltip { position: relative; cursor: help; display: inline-flex; align-items: center; gap: 4px; }
+  .info-icon { font-style: normal; font-size: 10px; color: #94a3b8; background: #2d3548; border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; line-height: 1; }
+  .tooltip { visibility: hidden; width: 220px; background-color: #1e2330; color: #cbd5e1; text-align: left; border-radius: 6px; padding: 10px; position: absolute; z-index: 50; bottom: 130%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.2s; border: 1px solid #3d4a63; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: normal; white-space: normal; line-height: 1.5; pointer-events: none; }
+  .tooltip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: #3d4a63 transparent transparent transparent; }
+  .has-tooltip:hover .tooltip { visibility: visible; opacity: 1; }
 
   /* KEY METRICS */
-  .results-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
-  .stat-card { background: #252c3f; border-radius: 8px; padding: 12px; border: 1px solid #2d3548; }
+  .results-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 4px; }
+  .stat-card { background: #252c3f; border-radius: 8px; padding: 12px; border: 1px solid #2d3548; display: flex; flex-direction: column; justify-content: space-between; }
   .stat-card.hl  { border-color: #6366f1; background: #1e1f3a; }
   .stat-card.grn { border-color: #22c55e; background: #0f2a1a; }
   .stat-card.yel { border-color: #f59e0b; background: #271e0a; }
   .stat-card.red { border-color: #ef4444; background: #2a0f0f; }
-  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; margin-bottom: 4px; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; margin-bottom: 4px; white-space: nowrap; overflow: visible; }
   .stat-value { font-size: 22px; font-weight: 700; color: #f1f5f9; }
-  .stat-sub   { font-size: 11px; color: #64748b; margin-top: 2px; }
-  .stat-delta { font-size: 11px; margin-top: 3px; }
-  .pos { color:#22c55e; } .neg { color:#ef4444; } .neu { color:#94a3b8; }
+  .stat-sub   { font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.3; }
+
+  /* UTILIZATION BARS */
+  .util-bar-bg { background: #0f1117; height: 6px; border-radius: 3px; margin: 8px 0; overflow: hidden; border: 1px solid #1a2030; }
+  .util-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+  .util-green { background: #22c55e; box-shadow: 0 0 5px rgba(34, 197, 94, 0.4); }
+  .util-yel { background: #f59e0b; box-shadow: 0 0 5px rgba(245, 158, 11, 0.4); }
+  .util-red { background: #ef4444; box-shadow: 0 0 5px rgba(239, 68, 68, 0.4); }
 
   /* ENROLLMENT TARGET BANNER */
-  .target-banner { display:flex; align-items:center; gap:16px; background:#1a1f30; border:1px solid #2d3548; border-radius:8px; padding:10px 14px; margin-bottom:4px; flex-wrap:wrap; }
-  .tb-item { display:flex; flex-direction:column; align-items:center; }
-  .tb-label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:#64748b; margin-bottom:2px; }
-  .tb-val   { font-size:18px; font-weight:700; color:#f1f5f9; }
+  .target-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#1a1f30; border:1px solid #2d3548; border-radius:8px; padding:12px 16px; margin-bottom:4px; flex-wrap:wrap; }
+  .tb-item { display:flex; flex-direction:column; align-items:center; flex: 1; }
+  .tb-label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:#64748b; margin-bottom:4px; text-align: center; }
+  .tb-val   { font-size:22px; font-weight:700; color:#f1f5f9; }
   .tb-sep   { width:1px; height:36px; background:#2d3548; }
-  .tb-delta-pos { font-size:13px; font-weight:700; color:#22c55e; }
-  .tb-delta-neg { font-size:13px; font-weight:700; color:#ef4444; }
-  .tb-delta-neu { font-size:13px; font-weight:700; color:#94a3b8; }
+  .tb-delta-pos { font-size:22px; font-weight:700; color:#22c55e; }
+  .tb-delta-neg { font-size:22px; font-weight:700; color:#ef4444; }
 
   /* DUAL FUNNEL */
   .funnel-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
@@ -71,7 +92,6 @@
   .funnel-title.std-col  { color: #6366f1; }
   .funnel-title.cap-col  { color: #06b6d4; }
   .funnel-title.pfa-col  { color: #f59e0b; }
-  .funnel-title.comb-col { color: #22c55e; }
 
   .funnel-row { display: flex; align-items: center; margin-bottom: 5px; gap: 8px; }
   .funnel-lbl { width: 145px; font-size: 11px; color: #94a3b8; flex-shrink: 0; }
@@ -81,10 +101,6 @@
   .bar-std  { background: linear-gradient(90deg,#4f46e5,#6366f1); }
   .bar-cap  { background: linear-gradient(90deg,#0891b2,#06b6d4); }
   .bar-pfa  { background: linear-gradient(90deg,#d97706,#f59e0b); }
-  .bar-comb { background: linear-gradient(90deg,#16a34a,#22c55e); }
-  .cap-line { position:absolute; top:0; bottom:0; width:2px; background:#ef4444; opacity:.85; pointer-events:none; }
-
-  .funnel-compare-note { font-size:11px; color:#64748b; background:#151b28; border-radius:6px; padding:8px 10px; margin-bottom:14px; border-left:3px solid #2d3548; line-height:1.5; }
 
   /* TABLES */
   .capacity-table { width:100%; border-collapse:collapse; font-size:12px; }
@@ -95,30 +111,53 @@
   .capacity-table .g  { color:#22c55e; }
   .capacity-table .w  { color:#f59e0b; }
   .capacity-table .b  { color:#ef4444; }
+  
+  .weekly-status { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .ws-green { background-color: #22c55e; }
+  .ws-red { background-color: #ef4444; }
 
-  .divider { border:none; border-top:1px solid #2d3548; margin:14px 0; }
-  .note { font-size:11px; color:#94a3b8; background:#151b28; border-radius:6px; padding:10px 12px; border-left:3px solid #3d4a63; margin-top:12px; line-height:1.6; }
-  .note.fut { border-left-color:#22c55e; }
-  .warn-box { font-size:11px; color:#fca5a5; background:#2a0f0f; border-radius:5px; padding:6px 10px; margin-top:8px; display:none; }
+  .warn-box { font-size:11px; color:#fca5a5; background:#2a0f0f; border-radius:5px; padding:8px 12px; margin-bottom:14px; display:none; border-left: 3px solid #ef4444; }
   .warn-box.on { display:block; }
+
+  /* NARRATIVE BOX CSS */
+  .narrative-box { background: #1e2330; border: 1px solid #3d4a63; border-left: 4px solid #6366f1; padding: 14px; border-radius: 6px; margin-top: 14px; }
+  .narrative-box h3 { font-size: 11px; text-transform: uppercase; color: #a5b4fc; margin-bottom: 6px; letter-spacing: 0.05em; }
+  .narrative-box p { font-size: 13px; line-height: 1.6; color: #cbd5e1; }
+  .narrative-box strong { color: #f8fafc; }
+
+  /* MODAL CSS */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 17, 23, 0.85); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #1e2330; border: 1px solid #3d4a63; border-radius: 10px; width: 600px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #2d3548; padding-bottom: 12px; }
+  .modal-header h2 { font-size: 14px; font-weight: 700; color: #f8fafc; margin: 0; }
+  .modal-close { background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1; }
+  .modal-close:hover { color: #ef4444; }
+  .modal-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  .modal-table th { text-align: left; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 1px solid #2d3548; }
+  .modal-table td { padding: 6px 8px; border-bottom: 1px solid #1a2030; color: #cbd5e1; font-size: 12px; }
+  .modal-table input { width: 70px; background: #0f1117; border: 1px solid #3d4a63; border-radius: 4px; color: #f1f5f9; padding: 4px; font-size: 12px; text-align: right; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
+  
+  /* CHART CONTAINER */
+  .chart-container { position: relative; height: 220px; width: 100%; margin-top: 10px; }
+
   .right-col { display:flex; flex-direction:column; gap:16px; }
 </style>
 </head>
 <body>
 
 <h1>CE + PFA Pathway Capacity Model</h1>
-<p class="subtitle">Switch pathway mode and month · Demand funnel vs. Capacity funnel shows enrollment over/under vs. target</p>
+<p class="subtitle">Switch pathway mode and month · Compare Demand potential vs Capacity potential</p>
 
-<!-- MODE TOGGLE -->
 <div class="mode-wrap">
   <span class="mode-label">Pathway Mode:</span>
   <div class="mode-bar">
-    <button class="mode-btn active-current" id="btn-current" onclick="setMode('current')">📞 Current State — PFA → CE Phone Screen</button>
-    <button class="mode-btn" id="btn-future" onclick="setMode('future')">🚀 Future State — PFA Converts → Skip to CE Eval</button>
+    <button class="mode-btn active-current" id="btn-current" onclick="setMode('current')" title="PFAs do prep work, but CEs still conduct the Phone Screen. (No CE PS time saved)">📞 Current State — PFA → CE Phone Screen</button>
+    <button class="mode-btn" id="btn-future" onclick="setMode('future')" title="PFAs conduct the Phone Screen, completely bypassing the CE PS queue. (Saves CE PS time)">🚀 Future State — PFA Converts → Skip to CE Eval</button>
   </div>
 </div>
 
-<!-- MONTH SELECTOR -->
 <div class="month-bar">
   <span class="month-bar-label">Month:</span>
   <button class="month-btn active" onclick="setMonth(0)">May</button>
@@ -132,42 +171,103 @@
 </div>
 
 <div class="grid">
-  <!-- ── LEFT PANEL ── -->
   <div class="panel">
     <h2>Inputs</h2>
 
-    <div class="section-label">Volume</div>
+    <div class="section-label">Volume & Forecasting</div>
     <div class="input-row">
-      <label>Accepted Apps (projected)</label>
-      <input type="number" id="apps-input" value="1147" min="100" max="9999" step="1">
+      <label>Accepted Apps (base)</label>
+      <input type="number" id="apps-base-input" value="1092" min="0" step="1" onchange="syncToArrays()">
     </div>
     <div class="input-row">
+      <label>App Volume Bump (%)</label>
+      <input type="range" id="appGrowth" min="0" max="25" value="5" step="1">
+      <span class="val-badge" id="appGrowth-v">+5%</span>
+    </div>
+    <div class="input-row">
+      <label>Projected Apps (adjusted)</label>
+      <span class="ro-val" id="apps-adj-ro" style="color:#06b6d4;">1147</span>
+    </div>
+    
+    <div class="input-row" style="margin-top: 8px;">
       <label>Enrollment Target</label>
-      <input type="number" id="enroll-target" value="327" min="0" max="9999" step="1">
+      <input type="number" id="enroll-target" value="327" min="0" max="9999" step="1" onchange="syncToArrays()">
     </div>
     <div class="input-row">
       <label>Apps → PS Scheduling Rate</label>
       <input type="range" id="psSchedRate" min="50" max="100" value="95" step="1">
       <span class="val-badge" id="psSchedRate-v">95%</span>
     </div>
-    <div class="input-row"><label>Gross PS Demand (pre-cap)</label><span class="ro-val" id="gross-ps-ro">—</span></div>
+    <div class="input-row"><label>System Gross PS Demand</label><span class="ro-val" id="gross-ps-ro">—</span></div>
 
-    <div class="section-label">CE Capacity</div>
+    <div class="section-label">Staffing Engine (Team Comp)</div>
     <div class="input-row">
-      <label>CE PS Capacity (base)</label>
-      <input type="number" id="psCap" value="1008" min="100" max="3000" step="10">
+      <label>Standard CEs Headcount</label>
+      <input type="number" id="stdCEs" value="13" min="0" max="100" step="1">
     </div>
     <div class="input-row">
-      <label>PTO Days (this month)<br><span style="color:#64748b;font-size:10px;">× 3.75 PS per day = PS reduction</span></label>
-      <input type="number" id="ptoDays" value="31.5" min="0" max="200" step="0.5">
+      <label>Lead CEs Headcount</label>
+      <input type="number" id="leadCEs" value="2" min="0" max="50" step="1">
     </div>
-    <div class="input-row"><label>PS Lost to PTO</label><span class="ro-val" id="pto-ps-ro">—</span></div>
+
+    <div class="section-label" style="color:#f59e0b;">Clinical Scheduling Quotas (Sandbox)</div>
+    <div class="input-row">
+      <label>Standard CE Daily Quota</label>
+      <div class="quota-row">
+        <input type="number" id="stdCePsQuota" value="4" min="0" max="20" step="1"> <span class="quota-lbl">PS</span>
+        <input type="number" id="stdCeEvalQuota" value="3" min="0" max="20" step="1"> <span class="quota-lbl">Evals</span>
+      </div>
+    </div>
+    <div class="input-row">
+      <label>Lead CE Daily Quota</label>
+      <div class="quota-row">
+        <input type="number" id="leadCePsQuota" value="3" min="0" max="20" step="1"> <span class="quota-lbl">PS</span>
+        <input type="number" id="leadCeEvalQuota" value="3" min="0" max="20" step="1"> <span class="quota-lbl">Evals</span>
+      </div>
+    </div>
+
+    <div class="section-label">Efficiency & Handle Time (AHT)</div>
+    <div class="input-row">
+      <label>PS Handle Time (mins)</label>
+      <input type="range" id="psAht" min="15" max="60" value="30" step="5">
+      <span class="val-badge" id="psAht-v">30m</span>
+    </div>
+    <div class="input-row">
+      <label>Eval Handle Time (mins)</label>
+      <input type="range" id="evalAht" min="30" max="90" value="60" step="5">
+      <span class="val-badge" id="evalAht-v">60m</span>
+    </div>
+
+    <div class="section-label">Calendar & Schedule Exceptions</div>
+    <div class="input-row">
+      <label>Working Days (this month)</label>
+      <input type="number" id="workingDays" value="20" min="10" max="31" step="0.1" onchange="syncToArrays()">
+    </div>
+    <div class="input-row">
+      <label>Known PTO Days (this month)</label>
+      <input type="number" id="ptoDays" value="0" min="0" max="200" step="0.5" onchange="syncToArrays()">
+    </div>
+    
+    <button class="month-btn action-btn" style="width: 100%; display: flex; justify-content: center; margin-top: 10px;" onclick="openSettingsModal()">
+      📅 Manage Annual Forecasts & Calendar
+    </button>
+
+    <div class="input-row" style="margin-top: 16px;">
+      <label>Unplanned Shrinkage Buffer (%)<br><span style="color:#64748b;font-size:10px;">Future PTO, sick time, admin</span></label>
+      <input type="range" id="shrinkage" min="0" max="25" value="5" step="1">
+      <span class="val-badge" id="shrinkage-v">5%</span>
+    </div>
     <div class="input-row"><label>Effective CE PS Capacity</label><span class="ro-val" id="eff-cap-ro" style="color:#06b6d4;">—</span></div>
 
-    <div class="input-row" style="margin-top:8px;">
-      <label>% Apps Diverted to PFA</label>
-      <input type="range" id="pfaPct" min="0" max="40" value="10" step="1">
+    <div class="section-label" style="color:#22c55e;">PFA Capacity Arbitrage</div>
+    <div class="input-row" style="margin-top:4px;">
+      <label>Target Apps Diverted to PFA (%) <span title="Use this to determine how many PFAs you need to hire to reach this goal." style="cursor:help; color:#a5b4fc; font-size:10px;">ⓘ</span></label>
+      <input type="range" id="pfaPct" min="0" max="100" value="10" step="1">
       <span class="val-badge" id="pfaPct-v">10%</span>
+    </div>
+    <div class="input-row">
+      <label>PFA Capacity (Apps/Month/Head)<br><span style="color:#64748b;font-size:10px;">Assumed volume 1 PFA handles</span></label>
+      <input type="number" id="pfaCapPerHead" value="120" min="10" max="1000" step="5">
     </div>
 
     <div class="section-label">Standard CE Funnel Rates</div>
@@ -177,10 +277,8 @@
     <div class="input-row"><label>Eval Completion Rate</label><input type="range" id="evalComp" min="50" max="100" value="78" step="1"><span class="val-badge" id="evalComp-v">78%</span></div>
     <div class="input-row"><label>Eval → Enrollment Rate</label><input type="range" id="enrollRate" min="50" max="100" value="80" step="1"><span class="val-badge" id="enrollRate-v">80%</span></div>
 
-    <!-- CURRENT STATE PFA -->
     <div id="sec-current">
       <div class="section-label">PFA-Converted Rates <span class="badge-current">Current State</span></div>
-      <p class="hint">PFA patients re-enter at CE Phone Screen — same PS queue, lower quality rates expected.</p>
       <div class="input-row"><label>PS Completion (PFA)</label><input type="range" id="pfaPsComp" min="30" max="100" value="65" step="1"><span class="val-badge" id="pfaPsComp-v">65%</span></div>
       <div class="input-row"><label>Screened-In Rate (PFA)</label><input type="range" id="pfaSiRate" min="30" max="100" value="80" step="1"><span class="val-badge" id="pfaSiRate-v">80%</span></div>
       <div class="input-row"><label>PS → Eval Sched. (PFA)</label><input type="range" id="pfaSchedRate" min="30" max="100" value="78" step="1"><span class="val-badge" id="pfaSchedRate-v">78%</span></div>
@@ -188,10 +286,8 @@
       <div class="input-row"><label>Eval → Enrollment (PFA)</label><input type="range" id="pfaEnrollRate" min="30" max="100" value="80" step="1"><span class="val-badge" id="pfaEnrollRate-v">80%</span></div>
     </div>
 
-    <!-- FUTURE STATE PFA -->
     <div id="sec-future" style="display:none;">
       <div class="section-label">PFA-Converted Rates <span class="badge-future">Future State</span></div>
-      <p class="hint">PFA handles its own conversion. Patients skip CE PS entirely and enter at CE Eval scheduling.</p>
       <div class="input-row">
         <label>PFA Conversion Rate<br><span style="color:#64748b;font-size:10px;">% of PFA apps that reach CE Eval</span></label>
         <input type="range" id="pfaConvRate" min="10" max="90" value="55" step="1">
@@ -202,85 +298,212 @@
     </div>
   </div>
 
-  <!-- ── RIGHT PANEL ── -->
   <div class="right-col">
 
-    <!-- KEY METRICS -->
     <div class="panel">
-      <h2 id="metrics-title">Key Outputs — May · Current State</h2>
+      <h2 id="metrics-title">Executive Staffing & Utilization — May</h2>
       <div class="results-grid" id="metrics"></div>
     </div>
 
-    <!-- ENROLLMENT vs TARGET -->
     <div class="panel">
-      <h2>Enrollment vs. Target</h2>
+      <h2>Enrollment Target Assurance</h2>
       <div class="target-banner" id="target-banner"></div>
+      <p style="font-size:11px; color:#64748b; margin-top:10px; text-align:center; line-height: 1.4;">
+        <em><strong>Note to Leadership:</strong> Because enrollment targets are met via a rolling timeline (approx. 10% in-month apps, 60% prior month, 30% 2+ months back), comparing raw In-Month Cohort Yield directly to the Target is misleading. <strong>Capacity Variance</strong> is the true leading indicator of whether the team is staffed to clear the required historical pipeline to hit the goal.</em>
+      </p>
+    </div>
+    
+    <div class="panel" id="chart-panel" style="display:none;">
+      <h2>
+        Headcount Forecast (May - Dec) 
+        <span title="This chart runs the current dashboard settings across all months to show exactly when your required CE headcount will exceed your current staff." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span>
+      </h2>
+      <div class="chart-container">
+        <canvas id="headcountChart"></canvas>
+      </div>
     </div>
 
-    <!-- DUAL FUNNEL -->
     <div class="panel">
-      <h2>Funnel Breakdown — Demand vs. Capacity <span style="font-size:10px;color:#64748b;font-weight:400;">· red line = effective CE PS capacity</span></h2>
-      <p class="funnel-compare-note" id="funnel-note">Left: funnel off gross PS <strong>demand</strong> (what would happen with unlimited capacity). Right: funnel off actual <strong>capacity</strong> (what CEs can actually process). Compare the two Enrolled rows to see the gap caused by the capacity ceiling.</p>
+      <h2>Weekly Run Rate vs. Targets <span style="font-size:10px;color:#64748b;font-weight:400;">· Assumes 4.33 weeks per month</span></h2>
+      <table class="capacity-table" id="weekly-table"></table>
+    </div>
+
+    <div class="panel">
+      <h2>Funnel Breakdown — Demand vs. Capacity</h2>
+      <p style="font-size:11px; color:#64748b; margin-bottom:14px; line-height:1.5;">Left: Unconstrained Demand funnel. Right: Maximum Theoretical Capacity funnel (what your CEs could yield if given unlimited volume). The KPI outputs above merge these to show actual projected results (lesser of demand or capacity).</p>
 
       <div class="funnel-grid">
         <div class="funnel-section">
-          <div class="funnel-title std-col">📋 Demand — Standard CE</div>
+          <div class="funnel-title std-col">📋 Demand — System Total</div>
           <div id="f-std-demand"></div>
         </div>
         <div class="funnel-section">
-          <div class="funnel-title cap-col">✅ Capacity — Standard CE</div>
+          <div class="funnel-title cap-col">✅ Capacity — Standard CE (Max)</div>
           <div id="f-std-cap"></div>
         </div>
       </div>
 
-      <div class="funnel-section" style="margin-bottom:14px;">
-        <div class="funnel-title pfa-col" id="pfa-funnel-title">PFA-Converted Path</div>
+      <div class="funnel-section">
+        <div class="funnel-title pfa-col" id="pfa-funnel-title">PFA-Converted Path (Actual Realized)</div>
         <div id="f-pfa"></div>
       </div>
-
-      <hr class="divider">
-      <div class="funnel-section">
-        <div class="funnel-title comb-col">Combined Output</div>
-        <div id="f-comb"></div>
-      </div>
-      <div class="warn-box" id="warn-box">⚠️ Gross PS demand exceeds effective CE capacity — capacity funnel is capped and demand funnel shows unconstrained potential.</div>
+      
+      <div class="warn-box" id="warn-box">⚠️ System demand exceeds effective CE capacity — actual throughput is capped. Constrained outputs are shown above.</div>
+      
+      <div class="narrative-box" id="dynamic-narrative">
+        </div>
     </div>
-
-    <!-- CAPACITY SUMMARY TABLE -->
+    
     <div class="panel">
-      <h2>CE Phone Screen Capacity Summary</h2>
+      <h2>System Capacity Summary</h2>
       <table class="capacity-table" id="cap-table"></table>
-      <div class="note" id="cap-note"></div>
     </div>
 
   </div>
 </div>
 
+<div class="modal-overlay" id="ptoModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>📅 Annual Master Forecast & Calendar</h2>
+      <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+    </div>
+    <p style="font-size:11px; color:#94a3b8; margin-bottom:16px;">Update pipeline projections, targets, and requested PTO across the entire year. These values automatically save to your browser.</p>
+    <table class="modal-table">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Base Apps</th>
+          <th>Target Enroll</th>
+          <th>Work Days</th>
+          <th>Known PTO</th>
+        </tr>
+      </thead>
+      <tbody id="modal-table-body">
+        </tbody>
+    </table>
+    <div class="modal-footer">
+      <button class="month-btn danger-btn" onclick="restoreDefaults()">Restore Original Baselines</button>
+      <button class="month-btn action-btn" onclick="saveSettingsModal()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ── MONTHLY DATA ─────────────────────────────────────────────────────
-const MONTHS       = ['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const PROJ_APPS    = [1147, 1088, 1091, 1163, 1407, 1496, 1435, 1346];
-const ENROLL_TGTS  = [327,  348,  349,  370,  403,  466,  528,  529];
-const PS_CAPS      = [1008, 1124, 1142, 1128, 1124, 1344, 1288, 1228];
-const PTO_DAYS     = [31.5, 14,   9,    12,   13,   0,    2,    1  ];
-const PTO_PS_RATE  = 3.75;
+// ── MONTHLY BASELINE DEFAULTS ──────────────────────────────────────────
+const MONTHS                = ['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DEFAULT_APPS_BASE     = [1092, 1036, 1039, 1108, 1340, 1425, 1367, 1322]; 
+const DEFAULT_ENROLL_TGTS   = [327,  348,  349,  370,  403,  466,  528,  529];
+const DEFAULT_WORKING_DAYS  = [20, 21, 21, 21, 21, 21, 18, 22];
+const DEFAULT_PTO_DAYS      = [0,  0,  0,  0,  0,  0,  0,  0 ];
+
+// ── LOCAL STORAGE ENGINE (PERSISTS DATA ACROSS REFRESHES) ────────────
+let PROJ_APPS_BASE = JSON.parse(localStorage.getItem('ce_apps_base')) || [...DEFAULT_APPS_BASE];
+let ENROLL_TGTS    = JSON.parse(localStorage.getItem('ce_enroll_tgts')) || [...DEFAULT_ENROLL_TGTS];
+let WORKING_DAYS   = JSON.parse(localStorage.getItem('ce_working_days')) || [...DEFAULT_WORKING_DAYS];
+let PTO_DAYS       = JSON.parse(localStorage.getItem('ce_pto_days')) || [...DEFAULT_PTO_DAYS];
+
+const WEEKS_PER_MONTH = 4.33; 
 
 let selMonth = 0;
 let selMode  = 'current';
+let myChart  = null; 
 
 const fmt = n => Math.round(n).toLocaleString();
 const fmtD = n => n.toFixed(1);
 const pct  = n => n.toFixed(1) + '%';
-const rv   = id => parseFloat(document.getElementById(id).value);
 
-// ── MONTH / MODE ─────────────────────────────────────────────────────
+// CRASH-PROOF HELPER FUNCTIONS
+const rv = id => {
+  const el = document.getElementById(id);
+  return el ? parseFloat(el.value) : 0;
+};
+const setText = (id, text) => {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+};
+const setHtml = (id, html) => {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+};
+
+// ── MODAL & SAVE LOGIC ──
+function openSettingsModal() {
+  const tbody = document.getElementById('modal-table-body');
+  let html = '';
+  for (let i = 0; i < MONTHS.length; i++) {
+    html += `
+      <tr>
+        <td><strong>${MONTHS[i]}</strong></td>
+        <td><input type="number" id="mod-apps-${i}" value="${PROJ_APPS_BASE[i]}" min="0"></td>
+        <td><input type="number" id="mod-tgt-${i}" value="${ENROLL_TGTS[i]}" min="0"></td>
+        <td><input type="number" id="mod-wd-${i}" value="${WORKING_DAYS[i]}" step="0.5" min="0"></td>
+        <td><input type="number" id="mod-pto-${i}" value="${PTO_DAYS[i]}" step="0.5" min="0"></td>
+      </tr>
+    `;
+  }
+  tbody.innerHTML = html;
+  document.getElementById('ptoModal').classList.add('open');
+}
+
+function closeSettingsModal() {
+  document.getElementById('ptoModal').classList.remove('open');
+}
+
+function saveSettingsModal() {
+  for (let i = 0; i < MONTHS.length; i++) {
+    PROJ_APPS_BASE[i] = parseInt(document.getElementById(`mod-apps-${i}`).value) || 0;
+    ENROLL_TGTS[i]    = parseInt(document.getElementById(`mod-tgt-${i}`).value) || 0;
+    WORKING_DAYS[i]   = parseFloat(document.getElementById(`mod-wd-${i}`).value) || 0;
+    PTO_DAYS[i]       = parseFloat(document.getElementById(`mod-pto-${i}`).value) || 0;
+  }
+  
+  localStorage.setItem('ce_apps_base', JSON.stringify(PROJ_APPS_BASE));
+  localStorage.setItem('ce_enroll_tgts', JSON.stringify(ENROLL_TGTS));
+  localStorage.setItem('ce_working_days', JSON.stringify(WORKING_DAYS));
+  localStorage.setItem('ce_pto_days', JSON.stringify(PTO_DAYS));
+  
+  document.getElementById('apps-base-input').value = PROJ_APPS_BASE[selMonth];
+  document.getElementById('enroll-target').value   = ENROLL_TGTS[selMonth];
+  document.getElementById('workingDays').value     = WORKING_DAYS[selMonth];
+  document.getElementById('ptoDays').value         = PTO_DAYS[selMonth];
+  
+  closeSettingsModal();
+  update();
+}
+
+function restoreDefaults() {
+  if(!confirm("Are you sure you want to restore the original baseline forecasts and targets? This will overwrite your saved changes permanently.")) return;
+  
+  PROJ_APPS_BASE = [...DEFAULT_APPS_BASE];
+  ENROLL_TGTS    = [...DEFAULT_ENROLL_TGTS];
+  WORKING_DAYS   = [...DEFAULT_WORKING_DAYS];
+  PTO_DAYS       = [...DEFAULT_PTO_DAYS];
+  
+  saveSettingsModal(); 
+}
+
+function syncToArrays() {
+  PROJ_APPS_BASE[selMonth] = rv('apps-base-input');
+  ENROLL_TGTS[selMonth]    = rv('enroll-target');
+  WORKING_DAYS[selMonth]   = rv('workingDays');
+  PTO_DAYS[selMonth]       = rv('ptoDays');
+  
+  localStorage.setItem('ce_apps_base', JSON.stringify(PROJ_APPS_BASE));
+  localStorage.setItem('ce_enroll_tgts', JSON.stringify(ENROLL_TGTS));
+  localStorage.setItem('ce_working_days', JSON.stringify(WORKING_DAYS));
+  localStorage.setItem('ce_pto_days', JSON.stringify(PTO_DAYS));
+  
+  update();
+}
+
 function setMonth(idx) {
   selMonth = idx;
   document.querySelectorAll('.month-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
-  document.getElementById('apps-input').value   = PROJ_APPS[idx];
-  document.getElementById('enroll-target').value = ENROLL_TGTS[idx];
-  document.getElementById('psCap').value         = PS_CAPS[idx];
-  document.getElementById('ptoDays').value       = PTO_DAYS[idx];
+  document.getElementById('apps-base-input').value = PROJ_APPS_BASE[idx];
+  document.getElementById('enroll-target').value   = ENROLL_TGTS[idx];
+  document.getElementById('workingDays').value     = WORKING_DAYS[idx];
+  document.getElementById('ptoDays').value         = PTO_DAYS[idx];
   update();
 }
 
@@ -293,7 +516,6 @@ function setMode(mode) {
   update();
 }
 
-// ── FUNNEL CALC ──────────────────────────────────────────────────────
 function stdFunnel(ps, psC, si, sch, evC, enR) {
   const psCompleted = ps * psC;
   const screenedIn  = psCompleted * si;
@@ -310,270 +532,419 @@ function pfaFutureFunnel(apps, conv, evC, enR) {
   return { ps:0, psCompleted:0, screenedIn:0, evalSched, evalComp, enrolled };
 }
 
-// ── MAIN UPDATE ──────────────────────────────────────────────────────
-function update() {
-  const month       = MONTHS[selMonth];
-  const totalApps   = parseInt(document.getElementById('apps-input').value)    || PROJ_APPS[selMonth];
-  const enrollTgt   = parseInt(document.getElementById('enroll-target').value) || ENROLL_TGTS[selMonth];
-  const psCapBase   = rv('psCap');
-  const ptoDays     = rv('ptoDays');
-  const ptoPS       = ptoDays * PTO_PS_RATE;
-  const effCap      = Math.max(0, psCapBase - ptoPS);   // effective capacity after PTO
-  const pfaP        = rv('pfaPct') / 100;
-  const psScR       = rv('psSchedRate') / 100;
+// ── MACRO CHART CALCULATION HELPER ──
+function getReqCEsForMonth(i) {
+  const baseApps = PROJ_APPS_BASE[i];
+  const totalApps = Math.round(baseApps * (1 + (rv('appGrowth') / 100)));
+  
+  const stdCEs = rv('stdCEs');
+  const leadCEs = rv('leadCEs');
+  const totalHeadcount = stdCEs + leadCEs || 1;
+  const wd = WORKING_DAYS[i];
+  const pto = PTO_DAYS[i];
+  const shrinkagePct = rv('shrinkage') / 100;
 
-  // Sync slider badges
-  ['psSchedRate','pfaPct','psComp','siRate','schedRate','evalComp','enrollRate',
-   'pfaPsComp','pfaSiRate','pfaSchedRate','pfaEvalComp','pfaEnrollRate',
-   'pfaConvRate','pfaFutEvalComp','pfaFutEnrollRate'].forEach(id => {
-    const el = document.getElementById(id);
-    const v  = document.getElementById(id+'-v');
-    if (el && v) v.textContent = parseFloat(el.value)+'%';
-  });
+  // Pull dynamic quotas
+  const stdPsDaily   = rv('stdCePsQuota');      
+  const leadPsDaily  = rv('leadCePsQuota');     
+  const dailyPSCap = (stdCEs * stdPsDaily) + (leadCEs * leadPsDaily);
+  const psCapBase = dailyPSCap * wd;
+  
+  const ptoPSLoss = pto * (dailyPSCap / totalHeadcount);
+  const shrinkagePS = psCapBase * shrinkagePct;
+  const effCap = Math.max(0, Math.round(psCapBase - ptoPSLoss - shrinkagePS));   
 
-  // Computed read-only displays
-  const stdApps = Math.round(totalApps * (1 - pfaP));
-  const pfaApps = Math.round(totalApps * pfaP);
+  const targetPfaPct = rv('pfaPct') / 100;
+  const psScR = rv('psSchedRate') / 100;
+  const pfaTargetApps = Math.round(totalApps * targetPfaPct);
+  
+  // Notice we completely dropped the pfaHeadcount capacity cap here! 
+  // PFA Apps are driven ENTIRELY by the percentage slider.
+  const pfaApps = pfaTargetApps; 
+  const stdApps = totalApps - pfaApps;
 
   const grossStdPS = stdApps * psScR;
-  const grossPfaPS = selMode==='current' ? pfaApps * psScR : 0;
-  const grossTotal = grossStdPS + grossPfaPS;
+  const grossPfaPS = selMode === 'current' ? pfaApps * psScR : 0;
+  const ceGrossDemand = grossStdPS + grossPfaPS;
 
-  document.getElementById('gross-ps-ro').textContent  = fmt(grossTotal);
-  document.getElementById('pto-ps-ro').textContent    = fmtD(ptoPS) + ' PS';
-  document.getElementById('eff-cap-ro').textContent   = fmt(effCap);
+  const effCapPerCE = effCap / totalHeadcount;
+  return effCapPerCE > 0 ? (ceGrossDemand / effCapPerCE) : 0;
+}
 
-  // ── DEMAND funnel (unconstrained by cap, uses gross PS)
-  const demandStd = stdFunnel(grossStdPS,
-    rv('psComp')/100, rv('siRate')/100, rv('schedRate')/100,
-    rv('evalComp')/100, rv('enrollRate')/100);
-  const demandPfaPS = selMode==='current' ? grossPfaPS : 0;
-  const demandPfa = selMode==='current'
-    ? stdFunnel(demandPfaPS, rv('pfaPsComp')/100, rv('pfaSiRate')/100,
-        rv('pfaSchedRate')/100, rv('pfaEvalComp')/100, rv('pfaEnrollRate')/100)
-    : pfaFutureFunnel(pfaApps, rv('pfaConvRate')/100, rv('pfaFutEvalComp')/100, rv('pfaFutEnrollRate')/100);
+// ── THE "QUARANTINE ZONE" CHART UPDATER ──
+function updateMacroChart() {
+  try {
+    if (typeof Chart === 'undefined') return; 
+    
+    document.getElementById('chart-panel').style.display = 'block'; 
+    
+    const currentHeadcount = rv('stdCEs') + rv('leadCEs');
+    const requiredData = [0, 1, 2, 3, 4, 5, 6, 7].map(i => getReqCEsForMonth(i));
+    const currentData = Array(8).fill(currentHeadcount);
 
-  const demandEnrolled = demandStd.enrolled + demandPfa.enrolled;
-
-  // ── CAPACITY funnel (capped at effCap)
-  const overCap = grossTotal > effCap;
-  let capStd, capPfa;
-  if (!overCap) {
-    capStd = grossStdPS; capPfa = grossPfaPS;
-  } else {
-    const ratio = grossTotal > 0 ? effCap / grossTotal : 0;
-    capStd = grossStdPS * ratio;
-    capPfa = grossPfaPS * ratio;
-  }
-  const effPS = capStd + capPfa;
-
-  const capStdFunnel = stdFunnel(capStd,
-    rv('psComp')/100, rv('siRate')/100, rv('schedRate')/100,
-    rv('evalComp')/100, rv('enrollRate')/100);
-
-  let capPfaFunnel;
-  if (selMode==='current') {
-    capPfaFunnel = stdFunnel(capPfa, rv('pfaPsComp')/100, rv('pfaSiRate')/100,
-      rv('pfaSchedRate')/100, rv('pfaEvalComp')/100, rv('pfaEnrollRate')/100);
-  } else {
-    capPfaFunnel = pfaFutureFunnel(pfaApps, rv('pfaConvRate')/100,
-      rv('pfaFutEvalComp')/100, rv('pfaFutEnrollRate')/100);
-  }
-
-  const capEnrolled  = capStdFunnel.enrolled + capPfaFunnel.enrolled;
-  const totalEvals   = capStdFunnel.evalSched + capPfaFunnel.evalSched;
-  const psUtil       = (effPS / effCap) * 100;
-  const psHead       = effCap - effPS;
-  const slotsFreed   = selMode==='future' ? Math.round(pfaApps * psScR) : 0;
-
-  // Enrollment deltas
-  const enrollVsTarget   = capEnrolled - enrollTgt;
-  const enrollDemandGap  = demandEnrolled - capEnrolled; // what cap is costing us
-
-  // ── METRICS TITLE
-  document.getElementById('metrics-title').textContent =
-    `Key Outputs — ${month} · ${selMode==='current' ? 'Current State' : 'Future State'}`;
-
-  // ── KEY METRICS CARDS
-  const uC = psUtil>100 ? 'red' : psUtil>90 ? 'yel' : 'grn';
-  const freeCard = selMode==='future'
-    ? `<div class="stat-card grn">
-        <div class="stat-label">CE PS Slots Freed</div>
-        <div class="stat-value">${fmt(slotsFreed)}</div>
-        <div class="stat-sub">PFA patients bypass PS entirely</div>
-       </div>`
-    : `<div class="stat-card">
-        <div class="stat-label">Apps via PFA (in PS queue)</div>
-        <div class="stat-value">${fmt(pfaApps)}</div>
-        <div class="stat-sub">Still consume CE PS capacity</div>
-       </div>`;
-
-  document.getElementById('metrics').innerHTML = `
-    <div class="stat-card hl">
-      <div class="stat-label">CE PS Capacity</div>
-      <div class="stat-value">${fmt(effCap)}</div>
-      <div class="stat-sub">Projected PS Demand: ${fmt(grossTotal)}${overCap ? ' ⚠️' : ''}</div>
-    </div>
-    <div class="stat-card ${uC}">
-      <div class="stat-label">PS Utilization</div>
-      <div class="stat-value">${pct(psUtil)}</div>
-      <div class="stat-sub">${psHead>=0 ? '+'+fmt(psHead)+' headroom' : fmt(Math.abs(psHead))+' over cap'}</div>
-    </div>
-    <div class="stat-card ${capEnrolled >= enrollTgt ? 'grn' : 'red'}">
-      <div class="stat-label">Projected Enrollments</div>
-      <div class="stat-value">${fmt(capEnrolled)}</div>
-      <div class="stat-sub">Target: ${fmt(enrollTgt)}</div>
-    </div>
-    ${freeCard}
-    <div class="stat-card">
-      <div class="stat-label">Total Evals Needed</div>
-      <div class="stat-value">${fmt(totalEvals)}</div>
-      <div class="stat-sub">Std: ${fmt(capStdFunnel.evalSched)} · PFA: ${fmt(capPfaFunnel.evalSched)}</div>
-    </div>
-    <div class="stat-card ${enrollDemandGap > 5 ? 'yel' : ''}">
-      <div class="stat-label">Enrollments Lost to Cap</div>
-      <div class="stat-value">${fmt(enrollDemandGap)}</div>
-      <div class="stat-sub">Demand: ${fmt(demandEnrolled)} vs Cap: ${fmt(capEnrolled)}</div>
-    </div>`;
-
-  // ── ENROLLMENT VS TARGET BANNER
-  const evtC = enrollVsTarget >= 0 ? 'tb-delta-pos' : 'tb-delta-neg';
-  const edgC = enrollDemandGap > 5 ? 'tb-delta-neg' : 'tb-delta-neu';
-  document.getElementById('target-banner').innerHTML = `
-    <div class="tb-item"><div class="tb-label">Target</div><div class="tb-val">${fmt(enrollTgt)}</div></div>
-    <div class="tb-sep"></div>
-    <div class="tb-item"><div class="tb-label">Projected (Cap)</div><div class="tb-val">${fmt(capEnrolled)}</div></div>
-    <div class="tb-sep"></div>
-    <div class="tb-item"><div class="tb-label">Over / Under Target</div><div class="${evtC}" style="font-size:20px;">${enrollVsTarget>=0?'+':''}${fmt(enrollVsTarget)}</div></div>
-    <div class="tb-sep"></div>
-    <div class="tb-item"><div class="tb-label">Unconstrained (Demand)</div><div class="tb-val" style="color:#94a3b8;">${fmt(demandEnrolled)}</div></div>
-    <div class="tb-sep"></div>
-    <div class="tb-item"><div class="tb-label">Lost to Capacity</div><div class="${edgC}" style="font-size:20px;">${enrollDemandGap > 0 ? '-' : ''}${fmt(enrollDemandGap)}</div></div>`;
-
-  // ── FUNNEL BARS
-  const maxBar = Math.max(totalApps * 1.05, effCap * 1.05, grossTotal * 1.05);
-  const capLinePct = (effCap / maxBar * 100).toFixed(1);
-
-  function bar(containerId, rows, cls, showCapLine) {
-    document.getElementById(containerId).innerHTML = rows.map(([lbl, val]) => {
-      const w = Math.max(val>0?2:0, Math.min(100,(val/maxBar)*100)).toFixed(1);
-      const cl = showCapLine ? `<div class="cap-line" style="left:${capLinePct}%"></div>` : '';
-      return `<div class="funnel-row">
-        <div class="funnel-lbl">${lbl}</div>
-        <div class="funnel-bar-wrap">${cl}
-          <div class="funnel-bar ${cls}" style="width:${w}%"><span>${fmt(val)}</span></div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  // Demand funnel — standard CE (unconstrained)
-  bar('f-std-demand', [
-    ['PS Demand (Std)',    demandStd.ps],
-    ['PS Completed',      demandStd.psCompleted],
-    ['Screened In',       demandStd.screenedIn],
-    ['Eval Scheduled',    demandStd.evalSched],
-    ['Eval Completed',    demandStd.evalComp],
-    ['Enrolled',          demandStd.enrolled],
-  ], 'bar-std', true);
-
-  // Capacity funnel — standard CE (capped)
-  bar('f-std-cap', [
-    ['PS Scheduled (Std)', capStdFunnel.ps],
-    ['PS Completed',       capStdFunnel.psCompleted],
-    ['Screened In',        capStdFunnel.screenedIn],
-    ['Eval Scheduled',     capStdFunnel.evalSched],
-    ['Eval Completed',     capStdFunnel.evalComp],
-    ['Enrolled',           capStdFunnel.enrolled],
-  ], 'bar-cap', true);
-
-  // PFA path
-  document.getElementById('pfa-funnel-title').textContent = selMode==='future'
-    ? 'PFA-Converted Path  (Bypasses CE PS → Enters CE Eval)'
-    : 'PFA-Converted Path  (Enters CE PS Queue)';
-
-  if (selMode==='current') {
-    bar('f-pfa', [
-      ['PS Scheduled (PFA)', capPfaFunnel.ps],
-      ['PS Completed',       capPfaFunnel.psCompleted],
-      ['Screened In',        capPfaFunnel.screenedIn],
-      ['Eval Scheduled',     capPfaFunnel.evalSched],
-      ['Eval Completed',     capPfaFunnel.evalComp],
-      ['Enrolled',           capPfaFunnel.enrolled],
-    ], 'bar-pfa', true);
-  } else {
-    bar('f-pfa', [
-      ['PFA Apps Diverted',  pfaApps],
-      ['Converted → Eval',   capPfaFunnel.evalSched],
-      ['Eval Completed',     capPfaFunnel.evalComp],
-      ['Enrolled',           capPfaFunnel.enrolled],
-    ], 'bar-pfa', false);
-  }
-
-  // Combined
-  bar('f-comb', [
-    ['Total PS Demand',    grossTotal],
-    ['Total PS Scheduled', effPS],
-    ['Total Evals Sched.', totalEvals],
-    ['Target Enrollment',  enrollTgt],
-    ['Projected Enrolled', capEnrolled],
-  ], 'bar-comb', true);
-
-  document.getElementById('warn-box').classList.toggle('on', overCap);
-
-  // ── FUNNEL COMPARE NOTE
-  const fn = document.getElementById('funnel-note');
-  if (overCap) {
-    fn.innerHTML = `⚠️ <strong>Capacity constrained:</strong> Gross PS demand (${fmt(grossTotal)}) exceeds effective capacity (${fmt(effCap)}). The demand funnel shows unconstrained potential; the capacity funnel shows actual throughput. The gap costs ~<strong>${fmt(enrollDemandGap)} enrollments</strong> this month.`;
-  } else {
-    fn.innerHTML = `✅ <strong>Capacity sufficient:</strong> Gross PS demand (${fmt(grossTotal)}) fits within effective capacity (${fmt(effCap)}). Demand and capacity funnels are aligned — no enrollment loss from PS ceiling this month.`;
-  }
-
-  // ── CAPACITY TABLE
-  let rows = '';
-  if (selMode==='current') {
-    rows = `
-      <tr><td>Standard CE Path</td><td>${fmt(stdApps)}</td><td class="em">${fmt(grossStdPS)}</td><td>${fmt(capStd)}</td><td>${pct(capStd/effCap*100)}</td></tr>
-      <tr><td>PFA-Converted Path</td><td>${fmt(pfaApps)}</td><td class="em">${fmt(grossPfaPS)}</td><td>${fmt(capPfa)}</td><td>${pct(capPfa/effCap*100)}</td></tr>`;
-  } else {
-    rows = `
-      <tr><td>Standard CE Path</td><td>${fmt(stdApps)}</td><td class="em">${fmt(grossStdPS)}</td><td>${fmt(capStd)}</td><td>${pct(capStd/effCap*100)}</td></tr>
-      <tr><td>PFA Path (bypasses PS)</td><td>${fmt(pfaApps)}</td><td class="em g">0</td><td class="g">0</td><td class="g">—</td></tr>
-      <tr><td style="color:#86efac;padding-left:18px;">↳ PS slots freed</td><td>—</td><td class="g">+${fmt(slotsFreed)}</td><td>—</td><td>—</td></tr>`;
-  }
-  document.getElementById('cap-table').innerHTML = `
-    <tr><th>Segment</th><th>Apps</th><th>PS Demand</th><th>PS Scheduled</th><th>% of Cap</th></tr>
-    ${rows}
-    <tr><td><strong>Total</strong></td><td>${fmt(totalApps)}</td><td class="em ${overCap?'b':''}">${fmt(grossTotal)}${overCap?' ⚠️':''}</td>
-      <td class="em">${fmt(effPS)}</td>
-      <td class="${psUtil>100?'b':psUtil>90?'w':'g'}">${pct(psUtil)}</td></tr>
-    <tr><td colspan="2">Base CE PS Capacity</td><td colspan="3" class="em">${fmt(psCapBase)}</td></tr>
-    <tr><td colspan="2">PTO Reduction (${fmtD(ptoDays)} days × ${PTO_PS_RATE})</td><td colspan="3" class="b">−${fmtD(ptoPS)} PS</td></tr>
-    <tr><td colspan="2"><strong>Effective CE PS Capacity</strong></td><td colspan="3" class="em g">${fmt(effCap)}</td></tr>
-    <tr><td colspan="2"><strong>Headroom / (Shortfall)</strong></td>
-      <td colspan="3" class="em ${psHead>=0?'g':'b'}">${psHead>=0?'+':''}${fmt(psHead)}</td></tr>`;
-
-  // ── NOTE
-  const n = document.getElementById('cap-note');
-  if (selMode==='current') {
-    n.className = 'note';
-    n.textContent = `Current State: All ${fmt(totalApps)} accepted apps consume CE PS capacity. PTO reduces effective capacity by ${fmtD(ptoPS)} PS slots (${fmtD(ptoDays)} days × ${PTO_PS_RATE}). Enrollment gap vs. target: ${enrollVsTarget>=0?'+':''}${fmt(enrollVsTarget)}.`;
-  } else {
-    n.className = 'note fut';
-    n.textContent = `Future State: PFA-diverted patients skip the CE PS queue, freeing ${fmt(slotsFreed)} PS slots. Effective CE PS capacity after PTO is ${fmt(effCap)}. Enrollment gap vs. target: ${enrollVsTarget>=0?'+':''}${fmt(enrollVsTarget)}.`;
+    const ctx = document.getElementById('headcountChart').getContext('2d');
+    
+    if (myChart) {
+      myChart.data.datasets[0].data = requiredData;
+      myChart.data.datasets[1].data = currentData;
+      myChart.update();
+    } else {
+      Chart.defaults.color = '#94a3b8';
+      Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      
+      myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: MONTHS,
+          datasets: [
+            {
+              label: 'Required CEs (Demand)',
+              data: requiredData,
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: '#f59e0b'
+            },
+            {
+              label: 'Current Staffed CEs',
+              data: currentData,
+              borderColor: '#3b82f6',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } }
+          },
+          scales: {
+            y: { beginAtZero: false, grid: { color: '#2d3548' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.warn("Chart.js failed to render. The rest of the dashboard remains operational.", err);
   }
 }
 
-// ── LISTENERS ────────────────────────────────────────────────────────
-['psSchedRate','pfaPct','psComp','siRate','schedRate','evalComp','enrollRate',
- 'pfaPsComp','pfaSiRate','pfaSchedRate','pfaEvalComp','pfaEnrollRate',
- 'pfaConvRate','pfaFutEvalComp','pfaFutEnrollRate',
- 'apps-input','enroll-target','psCap','ptoDays'].forEach(id => {
+function update() {
+  try {
+    const month       = MONTHS[selMonth];
+    const baseApps    = PROJ_APPS_BASE[selMonth];
+    const appGrowth   = rv('appGrowth');
+    
+    const totalApps   = Math.round(baseApps * (1 + (appGrowth / 100)));
+    setText('apps-adj-ro', fmt(totalApps));
+    
+    const enrollTgt   = ENROLL_TGTS[selMonth];
+    
+    const stdCEs         = rv('stdCEs');
+    const leadCEs        = rv('leadCEs');
+    const totalHeadcount = stdCEs + leadCEs || 1;
+    const workingDays    = WORKING_DAYS[selMonth];
+    const ptoDays        = PTO_DAYS[selMonth];
+    const shrinkagePct   = rv('shrinkage') / 100;
+
+    // Pull Dynamic Sandbox Quotas
+    const stdPsDaily   = rv('stdCePsQuota');      
+    const stdEvalDaily = rv('stdCeEvalQuota');  
+    const leadPsDaily  = rv('leadCePsQuota');     
+    const leadEvalDaily= rv('leadCeEvalQuota'); 
+
+    const dailyPSCap   = (stdCEs * stdPsDaily) + (leadCEs * leadPsDaily);
+    const dailyEvalCap = (stdCEs * stdEvalDaily) + (leadCEs * leadEvalDaily);
+
+    const psCapBase    = dailyPSCap * workingDays;
+    const evalCapBase  = dailyEvalCap * workingDays;
+
+    const ptoPSLoss    = ptoDays * (dailyPSCap / totalHeadcount);
+    const ptoEvalLoss  = ptoDays * (dailyEvalCap / totalHeadcount);
+    
+    const shrinkagePS  = psCapBase * shrinkagePct;
+    const shrinkageEval= evalCapBase * shrinkagePct;
+
+    const effCap       = Math.max(0, Math.round(psCapBase - ptoPSLoss - shrinkagePS));   
+    const effEvalCap   = Math.max(0, Math.round(evalCapBase - ptoEvalLoss - shrinkageEval));
+
+    // ── THE PFA DIVERSION FIX ──
+    const targetPfaPct = rv('pfaPct') / 100;
+    const psScR        = rv('psSchedRate') / 100;
+    const pfaCapPerMonth = rv('pfaCapPerHead') || 120;
+
+    // Calculate EXACTLY how many apps the slider dictates
+    const pfaApps = Math.round(totalApps * targetPfaPct);
+    const stdApps = totalApps - pfaApps;
+
+    // Calculate EXACTLY how many PFAs you need to handle that volume
+    const requiredPFAs = pfaApps / pfaCapPerMonth;
+
+    ['psSchedRate','pfaPct','psComp','siRate','schedRate','evalComp','enrollRate',
+     'pfaPsComp','pfaSiRate','pfaSchedRate','pfaEvalComp','pfaEnrollRate',
+     'pfaConvRate','pfaFutEvalComp','pfaFutEnrollRate','appGrowth','shrinkage'].forEach(id => {
+      const el = document.getElementById(id);
+      const v  = document.getElementById(id+'-v');
+      if (el && v) {
+        if (id === 'appGrowth' && el.value > 0) v.textContent = '+' + parseFloat(el.value) + '%';
+        else v.textContent = parseFloat(el.value) + '%';
+      }
+    });
+    
+    ['psAht', 'evalAht'].forEach(id => {
+      const el = document.getElementById(id);
+      const v  = document.getElementById(id+'-v');
+      if (el && v) v.textContent = parseFloat(el.value) + 'm';
+    });
+
+    const systemGrossPS = totalApps * psScR; 
+    setText('gross-ps-ro', fmt(systemGrossPS));
+
+    const grossStdPS = stdApps * psScR;
+    const grossPfaPS = selMode === 'current' ? pfaApps * psScR : 0;
+    const ceGrossDemand = grossStdPS + grossPfaPS;
+
+    setText('eff-cap-ro', fmt(effCap));
+
+    const demandStd = stdFunnel(grossStdPS, rv('psComp')/100, rv('siRate')/100, rv('schedRate')/100, rv('evalComp')/100, rv('enrollRate')/100);
+    const demandPfa = selMode==='current'
+      ? stdFunnel(grossPfaPS, rv('pfaPsComp')/100, rv('pfaSiRate')/100, rv('pfaSchedRate')/100, rv('pfaEvalComp')/100, rv('pfaEnrollRate')/100)
+      : pfaFutureFunnel(pfaApps, rv('pfaConvRate')/100, rv('pfaFutEvalComp')/100, rv('pfaFutEnrollRate')/100);
+    
+    const demandEnrolled = demandStd.enrolled + demandPfa.enrolled;
+    const totalDemandPSComp = demandStd.psCompleted + demandPfa.psCompleted;
+    const totalDemandEvalComp = demandStd.evalComp + demandPfa.evalComp;
+
+    const maxCapStdFunnel = stdFunnel(effCap, rv('psComp')/100, rv('siRate')/100, rv('schedRate')/100, rv('evalComp')/100, rv('enrollRate')/100);
+    const totalMaxCapacity = maxCapStdFunnel.enrolled + (selMode === 'future' ? demandPfa.enrolled : 0);
+
+    const overCap = ceGrossDemand > effCap;
+    let projStdPS = overCap ? grossStdPS * (effCap / ceGrossDemand) : grossStdPS;
+    let projPfaPS = overCap ? grossPfaPS * (effCap / ceGrossDemand) : grossPfaPS;
+    
+    const effPS = projStdPS + projPfaPS;
+
+    const projStdFunnel = stdFunnel(projStdPS, rv('psComp')/100, rv('siRate')/100, rv('schedRate')/100, rv('evalComp')/100, rv('enrollRate')/100);
+    const projPfaFunnel = selMode==='current'
+      ? stdFunnel(projPfaPS, rv('pfaPsComp')/100, rv('pfaSiRate')/100, rv('pfaSchedRate')/100, rv('pfaEvalComp')/100, rv('pfaEnrollRate')/100)
+      : pfaFutureFunnel(pfaApps, rv('pfaConvRate')/100, rv('pfaFutEvalComp')/100, rv('pfaFutEnrollRate')/100);
+
+    const projEnrolled  = projStdFunnel.enrolled + projPfaFunnel.enrolled;
+    const projEvalComp  = projStdFunnel.evalComp + projPfaFunnel.evalComp;
+    const totalEvals    = projStdFunnel.evalSched + projPfaFunnel.evalSched;
+    
+    const psUtil        = ceGrossDemand > 0 ? (effPS / effCap) * 100 : 0;
+    const psHead        = effCap - ceGrossDemand; 
+    const evalUtil      = effEvalCap > 0 ? (totalEvals / effEvalCap) * 100 : 0;
+    const evalHead      = effEvalCap - totalEvals;
+    
+    const slotsFreed    = selMode==='future' ? Math.round(pfaApps * psScR) : 0;
+    const capacityVariance = totalMaxCapacity - enrollTgt;
+    const enrollDemandGap  = demandEnrolled - projEnrolled; 
+
+    const effCapPerCE = effCap / totalHeadcount;
+    const requiredCEs = effCapPerCE > 0 ? (ceGrossDemand / effCapPerCE) : 0;
+    const ceDeficit = requiredCEs - totalHeadcount;
+
+    const blendedEnrollRate = projEvalComp > 0 ? (projEnrolled / projEvalComp) : (rv('enrollRate') / 100);
+    const targetEvalsComp = enrollTgt / blendedEnrollRate;
+
+    setText('metrics-title', `Executive Staffing & Utilization — ${month} · ${selMode==='current' ? 'Current State' : 'Future State'}`);
+
+    const psUtilColor = psUtil > 95 ? 'util-red' : psUtil > 85 ? 'util-yel' : 'util-green';
+    const evalUtilColor = evalUtil > 95 ? 'util-red' : evalUtil > 85 ? 'util-yel' : 'util-green';
+    
+    const freeCard = selMode==='future'
+      ? `<div class="stat-card"><div class="stat-label">CE PS Slots Freed <span title="Number of Phone Screen slots saved by routing apps directly to PFAs." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div><div class="stat-value" style="color:#22c55e;">+${fmt(slotsFreed)}</div><div style="flex:1;"></div><div class="stat-sub">Bypassed PS queue entirely</div></div>`
+      : `<div class="stat-card ${enrollDemandGap > 5 ? 'yel' : ''}"><div class="stat-label">Enrolls Lost to Cap <span title="The difference between unconstrained demand yield and actual projected yield." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div><div class="stat-value ${enrollDemandGap > 5 ? 'red' : ''}">${fmt(enrollDemandGap)}</div><div style="flex:1;"></div><div class="stat-sub">Demand: ${fmt(demandEnrolled)} · Actual: ${fmt(projEnrolled)}</div></div>`;
+
+    setHtml('metrics', `
+      <div class="stat-card">
+        <div class="stat-label">PS Utilization <span title="(System Gross PS Demand) ÷ (Effective CE PS Capacity). Anything over 100% means the queue is backing up and patients are delayed." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="stat-value">${pct(psUtil)}</div>
+        <div class="util-bar-bg"><div class="util-bar-fill ${psUtilColor}" style="width:${Math.min(100, psUtil)}%"></div></div>
+        <div class="stat-sub">Cap: ${fmt(effCap)} · ${psHead>=0 ? '+'+fmt(psHead)+' headroom' : fmt(Math.abs(psHead))+' shortfall'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Eval Utilization <span title="(Total Evals Scheduled) ÷ (Effective Eval Capacity). Evaluates if downstream calendars are overwhelmed by top-of-funnel throughput." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="stat-value">${pct(evalUtil)}</div>
+        <div class="util-bar-bg"><div class="util-bar-fill ${evalUtilColor}" style="width:${Math.min(100, evalUtil)}%"></div></div>
+        <div class="stat-sub">Cap: ${fmt(effEvalCap)} · ${evalHead>=0 ? '+'+fmt(evalHead)+' headroom' : fmt(Math.abs(evalHead))+' shortfall'}</div>
+      </div>
+      <div class="stat-card hl" style="border-color:#06b6d4;">
+        <div class="stat-label">Required CE Headcount <span title="Calculated by taking System Gross PS Demand ÷ Effective PS Capacity per CE. Purely based on top-of-funnel volume, ignoring target goals." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="stat-value">${requiredCEs.toFixed(1)}</div>
+        <div style="flex:1;"></div>
+        <div class="stat-sub">Current: ${totalHeadcount.toFixed(1)} · ${ceDeficit > 0 ? `<span class="red">+${ceDeficit.toFixed(1)} needed</span>` : `<span style="color:#22c55e;">Fully Staffed</span>`}</div>
+      </div>
+      <div class="stat-card hl" style="border-color:#f59e0b;">
+        <div class="stat-label">Required PFA Headcount <span title="Based exactly on your Target Apps Diverted slider ÷ PFA Capacity." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="stat-value">${requiredPFAs.toFixed(1)}</div>
+        <div style="flex:1;"></div>
+        <div class="stat-sub">To process ${fmt(pfaApps)} diverted apps</div>
+      </div>
+      
+      <div class="stat-card hl">
+        <div class="stat-label">Max Enrollment Cap. <span title="Effective CE Capacity × Cumulative Standard Funnel Conversion Rate. Maximum theoretical enrollments if CEs ran at 100% utilization." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="stat-value">${fmt(totalMaxCapacity)}</div>
+        <div style="flex:1;"></div>
+        <div class="stat-sub">Target: ${fmt(enrollTgt)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Target Evals Needed <span title="The number of Completed Evals required to hit the Enrollment Target (Target ÷ Blended Conversion Rate)." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="stat-value">${fmt(targetEvalsComp)}</div>
+        <div style="flex:1;"></div>
+        <div class="stat-sub">Proj. Completed: ${fmt(projEvalComp)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Evals Scheduled <span title="The actual projected number of Clinical Evaluations that will be scheduled based on constrained throughput." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="stat-value">${fmt(totalEvals)}</div>
+        <div style="flex:1;"></div>
+        <div class="stat-sub">Std: ${fmt(projStdFunnel.evalSched)} · PFA: ${fmt(projPfaFunnel.evalSched)}</div>
+      </div>
+      ${freeCard}
+    `);
+
+    const cvtC = capacityVariance >= 0 ? 'tb-delta-pos' : 'tb-delta-neg';
+    setHtml('target-banner', `
+      <div class="tb-item">
+        <div class="tb-label">Enrollment Target <span title="The company's monthly enrollment goal." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="tb-val">${fmt(enrollTgt)}</div>
+      </div><div class="tb-sep"></div>
+      <div class="tb-item">
+        <div class="tb-label">Max Capacity Yield <span title="Theoretical max enrollments based strictly on CE capacity and current conversion rates." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="tb-val" style="color:#a5b4fc;">${fmt(totalMaxCapacity)}</div>
+      </div><div class="tb-sep"></div>
+      <div class="tb-item">
+        <div class="tb-label">Capacity Variance <span title="Difference between Max Capacity Yield and Enrollment Target. Negative means understaffed or low conversion rates." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="${cvtC}">${capacityVariance>=0?'+':''}${fmt(capacityVariance)}</div>
+      </div><div class="tb-sep"></div>
+      <div class="tb-item">
+        <div class="tb-label">In-Month Cohort Yield <span title="Actual projected enrollments based on the lesser of demand or capacity for the current month's cohort." style="cursor:help; color:#a5b4fc; font-size:11px;">ⓘ</span></div>
+        <div class="tb-val" style="color:#94a3b8;">${fmt(projEnrolled)}</div>
+      </div>
+    `);
+
+    const wTgtPS   = 150;
+    const wTgtEval = 90;
+    const wTgtEnr  = 75;
+
+    const wDemPS   = totalDemandPSComp / WEEKS_PER_MONTH;
+    const wDemEval = totalDemandEvalComp / WEEKS_PER_MONTH;
+    const wDemEnr  = demandEnrolled / WEEKS_PER_MONTH;
+
+    const wCapPS   = maxCapStdFunnel.psCompleted / WEEKS_PER_MONTH;
+    const wCapEval = maxCapStdFunnel.evalComp / WEEKS_PER_MONTH;
+    const wCapEnr  = maxCapStdFunnel.enrolled / WEEKS_PER_MONTH;
+
+    function wRow(label, tgt, dem, cap) {
+      const demGap = dem - tgt;
+      const isDemMet = demGap >= 0;
+      const demBadge = `<span class="weekly-status ${isDemMet ? 'ws-green' : 'ws-red'}"></span>`;
+      return `<tr><td><strong>${label}</strong></td><td class="em">${tgt}</td><td>${demBadge}${fmt(dem)} <span style="color:#64748b; font-size:10px;">(${isDemMet?'+':''}${fmt(demGap)})</span></td><td class="em g">${fmt(cap)}</td></tr>`;
+    }
+
+    setHtml('weekly-table', `
+      <tr><th>Metric</th><th>Company Target</th><th>System Demand Pot.</th><th>Max CE Capacity</th></tr>
+      ${wRow('PS Completed', wTgtPS, wDemPS, wCapPS)}
+      ${wRow('Evals Completed', wTgtEval, wDemEval, wCapEval)}
+      ${wRow('Enrolled', wTgtEnr, wDemEnr, wCapEnr)}
+    `);
+
+    const maxBar = Math.max(totalApps * 1.05, effCap * 1.05, ceGrossDemand * 1.05);
+    function buildBars(rows, cls) {
+      return rows.map(([lbl, val]) => {
+        const w = Math.max(val>0?2:0, Math.min(100,(val/maxBar)*100)).toFixed(1);
+        return `<div class="funnel-row"><div class="funnel-lbl">${lbl}</div><div class="funnel-bar-wrap"><div class="funnel-bar ${cls}" style="width:${w}%"><span>${fmt(val)}</span></div></div></div>`;
+      }).join('');
+    }
+
+    setHtml('f-std-demand', buildBars([
+      ['PS Demand (Total)', ceGrossDemand + (selMode==='future'?pfaApps:0)], 
+      ['PS Completed', totalDemandPSComp], 
+      ['Screened In', demandStd.screenedIn + demandPfa.screenedIn],
+      ['Eval Scheduled', demandStd.evalSched + demandPfa.evalSched], 
+      ['Eval Completed', totalDemandEvalComp], 
+      ['Enrolled', demandEnrolled]
+    ], 'bar-std'));
+
+    setHtml('f-std-cap', buildBars([
+      ['Effective Capacity', maxCapStdFunnel.ps], ['PS Completed', maxCapStdFunnel.psCompleted], ['Screened In', maxCapStdFunnel.screenedIn],
+      ['Eval Scheduled', maxCapStdFunnel.evalSched], ['Eval Completed', maxCapStdFunnel.evalComp], ['Enrolled', maxCapStdFunnel.enrolled]
+    ], 'bar-cap'));
+
+    setText('pfa-funnel-title', selMode==='future' ? 'PFA-Converted Path (Bypasses CE PS → Enters CE Eval)' : 'PFA-Converted Path (Enters CE PS Queue)');
+
+    if (selMode==='current') {
+      setHtml('f-pfa', buildBars([['PS Scheduled (PFA)', projPfaFunnel.ps], ['PS Completed', projPfaFunnel.psCompleted], ['Screened In', projPfaFunnel.screenedIn], ['Eval Scheduled', projPfaFunnel.evalSched], ['Eval Completed', projPfaFunnel.evalComp], ['Enrolled', projPfaFunnel.enrolled]], 'bar-pfa'));
+    } else {
+      setHtml('f-pfa', buildBars([['PFA Apps Diverted', pfaApps], ['Converted → Eval', projPfaFunnel.evalSched], ['Eval Completed', projPfaFunnel.evalComp], ['Enrolled', projPfaFunnel.enrolled]], 'bar-pfa'));
+    }
+
+    const warnBox = document.getElementById('warn-box');
+    if (warnBox) warnBox.classList.toggle('on', overCap);
+
+    let ceText = "";
+    if (ceDeficit > 0.1) {
+      ceText = `We need roughly <strong>${ceDeficit.toFixed(1)} more CEs</strong> to handle all the applications marketing is projecting to send us in ${month}.`;
+    } else if (ceDeficit < -0.1) {
+      ceText = `We have a surplus of <strong>${Math.abs(ceDeficit).toFixed(1)} CE headcount</strong> relative to the applications marketing is projecting to send us in ${month}. The team is appropriately staffed for the demand we have.`;
+    } else {
+      ceText = `We are perfectly staffed to handle the applications marketing is projecting to send us in ${month}.`;
+    }
+
+    let targetText = "";
+    if (capacityVariance < 0) {
+      targetText = `However, our ${month} target is <strong>${fmt(enrollTgt)} enrollments</strong>. Even if our CEs process every single application perfectly up to their maximum capacity, our current conversion rates mean we will only theoretically yield <strong>${fmt(totalMaxCapacity)} enrollments</strong>, missing the target by <strong>${fmt(Math.abs(capacityVariance))}</strong>. To close this gap, we must improve mid-funnel conversion rates or drive significantly more top-of-funnel volume.`;
+    } else {
+      targetText = `Our ${month} target is <strong>${fmt(enrollTgt)} enrollments</strong>. Based on our maximum capacity and current conversion rates, we are positioned to theoretically yield <strong>${fmt(totalMaxCapacity)} enrollments</strong>, successfully exceeding the target by <strong>${fmt(capacityVariance)}</strong>.`;
+    }
+
+    setHtml('dynamic-narrative', `<h3>Monthly Executive Insight</h3><p>${ceText} ${targetText}</p>`);
+
+    let cRows = selMode==='current' 
+      ? `<tr><td>Standard CE Path</td><td>${fmt(stdApps)}</td><td class="em">${fmt(grossStdPS)}</td><td>${fmt(projStdPS)}</td><td>${pct(projStdPS/effCap*100)}</td></tr>
+         <tr><td>PFA-Converted Path</td><td>${fmt(pfaApps)}</td><td class="em">${fmt(grossPfaPS)}</td><td>${fmt(projPfaPS)}</td><td>${pct(projPfaPS/effCap*100)}</td></tr>`
+      : `<tr><td>Standard CE Path</td><td>${fmt(stdApps)}</td><td class="em">${fmt(grossStdPS)}</td><td>${fmt(projStdPS)}</td><td>${pct(projStdPS/effCap*100)}</td></tr>
+         <tr><td>PFA Path (bypasses PS)</td><td>${fmt(pfaApps)}</td><td class="em g">0</td><td class="g">0</td><td class="g">—</td></tr>
+         <tr><td style="color:#86efac;padding-left:18px;">↳ PS slots freed</td><td>—</td><td class="g">+${fmt(slotsFreed)}</td><td>—</td><td>—</td></tr>`;
+
+    setHtml('cap-table', `
+      <tr><th>Segment</th><th>Apps</th><th>PS Demand</th><th>PS Scheduled</th><th>% of Cap</th></tr>
+      ${cRows}
+      <tr><td><strong>Total</strong></td><td>${fmt(totalApps)}</td><td class="em ${overCap?'b':''}">${fmt(ceGrossDemand)}${overCap?' ⚠️':''}</td><td class="em">${fmt(effPS)}</td><td class="${psUtil>100?'b':psUtil>90?'w':'g'}">${pct(psUtil)}</td></tr>
+      <tr><td colspan="2">Calculated Base PS Capacity</td><td colspan="3" class="em">${fmt(psCapBase)}</td></tr>
+      <tr><td colspan="2">Known PTO Reduction</td><td colspan="3" class="b">−${fmtD(ptoPSLoss)} PS</td></tr>
+      <tr><td colspan="2">Unplanned Shrinkage Buffer (${rv('shrinkage') || 0}%)</td><td colspan="3" class="b">−${fmtD(shrinkagePS)} PS</td></tr>
+      <tr><td colspan="2"><strong>Effective CE PS Capacity</strong></td><td colspan="3" class="em g">${fmt(effCap)}</td></tr>
+      <tr><td colspan="2"><strong>Headroom / (Shortfall)</strong></td><td colspan="3" class="em ${psHead>=0?'g':'b'}">${psHead>=0?'+':''}${fmt(psHead)}</td></tr>
+    `);
+
+    updateMacroChart();
+
+  } catch (e) {
+    console.error("Dashboard Engine Error:", e);
+    const titleEl = document.getElementById('metrics-title');
+    if(titleEl) titleEl.innerHTML = `<span style="color:#ef4444;">Dashboard Error: ${e.message}. Please check console.</span>`;
+  }
+}
+
+['apps-base-input', 'psSchedRate','pfaPct','psComp','siRate','schedRate','evalComp','enrollRate','pfaPsComp','pfaSiRate','pfaSchedRate','pfaEvalComp','pfaEnrollRate','pfaConvRate','pfaFutEvalComp','pfaFutEnrollRate','appGrowth','enroll-target','ptoDays', 'shrinkage', 'pfaCapPerHead', 'stdCEs', 'leadCEs', 'workingDays', 'psAht', 'evalAht', 'stdCePsQuota', 'stdCeEvalQuota', 'leadCePsQuota', 'leadCeEvalQuota'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', update);
 });
 
-update();
+window.onload = function() {
+  setMonth(0);
+};
 </script>
 </body>
 </html>
